@@ -1,0 +1,27 @@
+{
+  "name": "everycred",
+  "version": "1.0.0",
+  "description": "End-to-end test automation for the EveryCRED platform, built with Playwright and TypeScript.",
+  "private": true,
+  "scripts": {
+    "test": "playwright test && node send-report.js",
+    "test:dev": "cross-env BASE_URL=dev playwright test",
+    "test:staging": "cross-env BASE_URL=staging playwright test",
+    "test:prod": "cross-env BASE_URL=prod playwright test",
+    "test:all": "npm run test:dev && npm run test:staging && npm run test:prod",
+    "test:no-email": "playwright test",
+    "show-report": "playwright show-report reports",
+    "send-report": "node send-report.js",
+    "report-server": "node report-server.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^22.7.0",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "nodemailer": "^10.0.10"
+  }
+}

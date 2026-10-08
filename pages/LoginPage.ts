@@ -14,7 +14,9 @@ export class LoginPage extends BasePage {
     // The app's "Password" <label> is not associated with its input (no id/for),
     // so getByLabel finds nothing; target the password input by type instead.
     this.passwordInput = page.locator('input[type="password"]');
-    this.submitButton = page.getByRole('button', { name: /log ?in|sign ?in/i });
+    // Case-sensitive exact match: the login view can show both "Sign In" (the
+    // submit button) and a secondary "Sign in" button, so an /i regex matches two.
+    this.submitButton = page.getByRole('button', { name: 'Sign In', exact: true });
     // Forgot Password and Sign Up swap views in place; the URL stays on /auth/login.
     this.forgotPasswordButton = page.getByRole('button', { name: /forgot password/i });
     this.signUpButton = page.getByRole('button', { name: 'Sign Up' });

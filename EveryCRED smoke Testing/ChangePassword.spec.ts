@@ -1,41 +1,18 @@
-import { test, expect, Page } from '@playwright/test';
-import { LoginPage } from '../pages/LoginPage';
-import { DashboardPage } from '../pages/DashboardPage';
+import { test, expect } from './fixtures';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 
-// Sign-in runs a reCAPTCHA check + API call ("Verifying...") that can outlast the
-// default 5s expect timeout, so the post-login redirect gets a longer window.
-const LOGIN_REDIRECT_TIMEOUT = 30_000;
+// Each test deep-links straight to the page, which can take a moment to render,
+// so give the first heading a generous appearance window.
+const PAGE_READY_TIMEOUT = 30_000;
 
-// Log in once and reuse the session across all tests in this file: repeated
-// logins in quick succession trip the sign-in reCAPTCHA, so each test shares a
-// single authenticated page (hence serial mode).
-test.describe.serial('Change Password', () => {
-  let page: Page;
+// Every test reuses the worker's shared logged-in session (see fixtures.ts).
+test.describe('Change Password', () => {
   let changePasswordPage: ChangePasswordPage;
 
-  test.beforeAll(async ({ browser }) => {
-    const email = process.env.TEST_EMAIL;
-    const password = process.env.TEST_PASSWORD;
-    test.skip(!email || !password, 'TEST_EMAIL / TEST_PASSWORD not set in .env');
-
-    page = await browser.newPage();
-    const loginPage = new LoginPage(page);
-    changePasswordPage = new ChangePasswordPage(page);
-
-    await loginPage.goto();
-    await loginPage.login(email!, password!);
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: LOGIN_REDIRECT_TIMEOUT });
-    await expect(new DashboardPage(page).heading).toBeVisible();
-  });
-
-  test.afterAll(async () => {
-    await page?.close();
-  });
-
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ authedPage }) => {
+    changePasswordPage = new ChangePasswordPage(authedPage);
     await changePasswordPage.goto();
-    await expect(changePasswordPage.heading).toBeVisible();
+    await expect(changePasswordPage.heading).toBeVisible({ timeout: PAGE_READY_TIMEOUT });
   });
 
   test('renders the Change Password form with all three fields', async () => {

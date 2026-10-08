@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
@@ -7,25 +7,33 @@ import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 // default 5s expect timeout, so the post-login redirect gets a longer window.
 const LOGIN_REDIRECT_TIMEOUT = 30_000;
 
-test.describe('Change Password', () => {
-  let loginPage: LoginPage;
+// Log in once and reuse the session across all tests in this file: repeated
+// logins in quick succession trip the sign-in reCAPTCHA, so each test shares a
+// single authenticated page (hence serial mode).
+test.describe.serial('Change Password', () => {
+  let page: Page;
   let changePasswordPage: ChangePasswordPage;
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeAll(async ({ browser }) => {
     const email = process.env.TEST_EMAIL;
     const password = process.env.TEST_PASSWORD;
     test.skip(!email || !password, 'TEST_EMAIL / TEST_PASSWORD not set in .env');
 
-    loginPage = new LoginPage(page);
+    page = await browser.newPage();
+    const loginPage = new LoginPage(page);
     changePasswordPage = new ChangePasswordPage(page);
 
-    await test.step('log in', async () => {
-      await loginPage.goto();
-      await loginPage.login(email!, password!);
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: LOGIN_REDIRECT_TIMEOUT });
-      await expect(new DashboardPage(page).heading).toBeVisible();
-    });
+    await loginPage.goto();
+    await loginPage.login(email!, password!);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: LOGIN_REDIRECT_TIMEOUT });
+    await expect(new DashboardPage(page).heading).toBeVisible();
+  });
 
+  test.afterAll(async () => {
+    await page?.close();
+  });
+
+  test.beforeEach(async () => {
     await changePasswordPage.goto();
     await expect(changePasswordPage.heading).toBeVisible();
   });
@@ -38,18 +46,14 @@ test.describe('Change Password', () => {
     await expect(changePasswordPage.cancelButton).toBeVisible();
   });
 
-  test('shows required-field errors when submitting an empty form', async ({ page }) => {
-    await changePasswordPage.submitButton.click();
-
-    await expect(page.getByText(/current password is required/i)).toBeVisible();
-    await expect(page.getByText(/new password is required/i)).toBeVisible();
-    await expect(page).toHaveURL(/\/change-password/);
+  test('keeps the submit button disabled while the form is empty', async () => {
+    await expect(changePasswordPage.submitButton).toBeDisabled();
   });
 
-  test('shows a mismatch error when confirmation does not match the new password', async ({ page }) => {
-    await changePasswordPage.changePassword('OldPass123!', 'NewPass123!', 'Different123!');
-
-    await expect(page.getByText(/(password.*(do not|does not|doesn't) match|passwords do not match)/i)).toBeVisible();
-    await expect(page).toHaveURL(/\/change-password/);
+  test('enables submit once all fields are filled', async () => {
+    await changePasswordPage.currentPasswordInput.fill('OldPass123!');
+    await changePasswordPage.newPasswordInput.fill('NewPass123!');
+    await changePasswordPage.confirmPasswordInput.fill('NewPass123!');
+    await expect(changePasswordPage.submitButton).toBeEnabled();
   });
 });

@@ -8,8 +8,12 @@ export class ProfilePage extends BasePage {
   readonly mobileNumberInput: Locator;
   readonly countryCodeSelect: Locator;
   readonly registerMobileHeading: Locator;
+  readonly editProfileButton: Locator;
   readonly saveButton: Locator;
   readonly cancelButton: Locator;
+  // Account menu in the top banner → "My Profile" link (the real-user route here).
+  readonly accountMenuButton: Locator;
+  readonly myProfileLink: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -25,11 +29,56 @@ export class ProfilePage extends BasePage {
     this.mobileNumberInput = inputs.nth(2);
     this.countryCodeSelect = page.getByRole('combobox', { name: /country code/i });
     this.registerMobileHeading = page.getByRole('heading', { name: 'Register Mobile Number' });
+    // The profile card is read-only on load; the pencil ("Edit profile") unlocks
+    // the form (editable Full Name + Save Changes / Cancel).
+    this.editProfileButton = page.getByRole('button', { name: /edit profile/i });
     this.saveButton = page.getByRole('button', { name: /save changes/i });
-    this.cancelButton = page.getByRole('button', { name: /cancel/i });
+    // Another " Cancel" button (with a leading icon) exists elsewhere, so match
+    // the profile form's Cancel by its exact accessible name.
+    this.cancelButton = page.getByRole('button', { name: 'Cancel', exact: true });
+    // The account dropdown is the last button in the top banner (the avatar + name).
+    this.accountMenuButton = page.getByRole('banner').getByRole('button').last();
+    // "My Profile" is a plain clickable text node (not a link/button role), so
+    // match it by its exact text.
+    this.myProfileLink = page.getByText('My Profile', { exact: true });
   }
 
   async goto(): Promise<void> {
     await super.goto('/issuer/admin/profile/info');
+  }
+
+  /** Reach the profile page the way a user does: avatar menu → "My Profile". */
+  async openFromAccountMenu(): Promise<void> {
+    await this.accountMenuButton.click();
+    await this.myProfileLink.click();
+  }
+
+  /**
+   * Wait until the profile's late async data fetch has finished. The "Register
+   * Mobile Number" section renders only after that fetch, so its heading is a
+   * reliable "fully loaded" marker. Entering edit mode before this completes can
+   * be reset by the late re-render.
+   */
+  async waitUntilLoaded(timeout = 30_000): Promise<void> {
+    await this.registerMobileHeading.waitFor({ state: 'visible', timeout });
+  }
+
+  /** Click the card pencil to switch the form from read-only into edit mode. */
+  async enterEditMode(): Promise<void> {
+    await this.waitUntilLoaded();
+    await this.editProfileButton.click();
+  }
+
+  /** Replace the Full Name value (must be in edit mode first). */
+  async setFullName(name: string): Promise<void> {
+    await this.fullNameInput.waitFor({ state: 'visible' });
+    await this.fullNameInput.fill(name);
+  }
+
+  /** Click Save Changes and wait for the form to return to read-only. */
+  async save(): Promise<void> {
+    await this.saveButton.click();
+    // Save closes edit mode and the pencil reappears — a reliable "done" signal.
+    await this.editProfileButton.waitFor({ state: 'visible', timeout: 30_000 });
   }
 }

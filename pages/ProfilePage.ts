@@ -8,6 +8,7 @@ export class ProfilePage extends BasePage {
   readonly mobileNumberInput: Locator;
   readonly countryCodeSelect: Locator;
   readonly registerMobileHeading: Locator;
+  readonly sendOtpButton: Locator;
   readonly editProfileButton: Locator;
   readonly saveButton: Locator;
   readonly cancelButton: Locator;
@@ -29,6 +30,8 @@ export class ProfilePage extends BasePage {
     this.mobileNumberInput = inputs.nth(2);
     this.countryCodeSelect = page.getByRole('combobox', { name: /country code/i });
     this.registerMobileHeading = page.getByRole('heading', { name: 'Register Mobile Number' });
+    // Disabled until a mobile number is entered; clicking it would send a real OTP.
+    this.sendOtpButton = page.getByRole('button', { name: /send otp/i });
     // The profile card is read-only on load; the pencil ("Edit profile") unlocks
     // the form (editable Full Name + Save Changes / Cancel).
     this.editProfileButton = page.getByRole('button', { name: /edit profile/i });

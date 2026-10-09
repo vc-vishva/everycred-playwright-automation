@@ -70,4 +70,22 @@ test.describe('Profile', () => {
     await profilePage.setFullName(originalName);
     await profilePage.save();
   });
+
+  test('enables Send OTP after entering a mobile number (no submit)', async () => {
+    // Enter edit mode to reveal the Register Mobile Number controls.
+    await profilePage.enterEditMode();
+    await expect(profilePage.countryCodeSelect).toBeVisible();
+    await expect(profilePage.mobileNumberInput).toBeVisible();
+
+    // Send OTP stays disabled until a number is typed.
+    await expect(profilePage.sendOtpButton).toBeDisabled();
+
+    // Typing a number enables Send OTP. We deliberately do NOT click it —
+    // that would send a real OTP and change the live account's number.
+    await profilePage.mobileNumberInput.fill('9876543210');
+    await expect(profilePage.sendOtpButton).toBeEnabled();
+
+    // Cancel to discard the entry and leave the account untouched.
+    await profilePage.cancelButton.click();
+  });
 });

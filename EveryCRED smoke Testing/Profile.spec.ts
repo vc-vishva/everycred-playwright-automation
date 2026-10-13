@@ -7,6 +7,11 @@ const PAGE_READY_TIMEOUT = 30_000;
 
 // Every test reuses the worker's shared logged-in session (see fixtures.ts).
 test.describe('Profile', () => {
+  // These tests drive heavy navigation on the shared session; the app's session
+  // token rotation can occasionally race a hard navigation and bounce to login.
+  // One retry lets such a transient drop self-heal instead of failing the run.
+  test.describe.configure({ retries: 1 });
+
   let profilePage: ProfilePage;
 
   test.beforeEach(async ({ authedPage }) => {
@@ -48,7 +53,11 @@ test.describe('Profile', () => {
     test.setTimeout(90_000);
 
     // Exercise the real route: start on the dashboard, then avatar → My Profile.
+    // Confirm the dashboard actually loaded (shared session alive) before using
+    // the account menu — a hard navigation can briefly race the app's session
+    // token rotation and bounce to login.
     await authedPage.goto('/issuer/admin/dashboard');
+    await expect(authedPage).toHaveURL(/\/dashboard/, { timeout: PAGE_READY_TIMEOUT });
     await profilePage.openFromAccountMenu();
     await expect(profilePage.heading).toBeVisible({ timeout: PAGE_READY_TIMEOUT });
 

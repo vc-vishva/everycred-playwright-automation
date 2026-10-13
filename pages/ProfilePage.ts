@@ -52,6 +52,9 @@ export class ProfilePage extends BasePage {
 
   /** Reach the profile page the way a user does: avatar menu → "My Profile". */
   async openFromAccountMenu(): Promise<void> {
+    // Wait for the banner's account button to render before clicking — after a
+    // hard navigation the top bar can mount a beat late.
+    await this.accountMenuButton.waitFor({ state: 'visible', timeout: 30_000 });
     await this.accountMenuButton.click();
     await this.myProfileLink.click();
   }

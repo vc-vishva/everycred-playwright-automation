@@ -7,6 +7,11 @@ export class LoginPage extends BasePage {
   readonly submitButton: Locator;
   readonly forgotPasswordButton: Locator;
   readonly signUpButton: Locator;
+  // Forgot Password view (swaps in place; URL stays on /auth/login).
+  readonly forgotPasswordHeading: Locator;
+  readonly recoveryEmailInput: Locator;
+  readonly sendRecoveryEmailButton: Locator;
+  readonly backToLoginButton: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -20,6 +25,12 @@ export class LoginPage extends BasePage {
     // Forgot Password and Sign Up swap views in place; the URL stays on /auth/login.
     this.forgotPasswordButton = page.getByRole('button', { name: /forgot password/i });
     this.signUpButton = page.getByRole('button', { name: 'Sign Up' });
+    this.forgotPasswordHeading = page.getByRole('heading', { name: 'Forgot Password?' });
+    this.sendRecoveryEmailButton = page.getByRole('button', { name: 'Send Recovery Email' });
+    this.backToLoginButton = page.getByRole('button', { name: /back to login/i });
+    // The Forgot Password view's own email field (same unassociated-label caveat
+    // as login, so target the email input within this view by type).
+    this.recoveryEmailInput = page.locator('input[type="email"]');
   }
 
   async goto(): Promise<void> {
@@ -30,5 +41,11 @@ export class LoginPage extends BasePage {
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
     await this.submitButton.click();
+  }
+
+  /** Switch the login view into the Forgot Password view. */
+  async openForgotPassword(): Promise<void> {
+    await this.forgotPasswordButton.click();
+    await this.forgotPasswordHeading.waitFor({ state: 'visible' });
   }
 }

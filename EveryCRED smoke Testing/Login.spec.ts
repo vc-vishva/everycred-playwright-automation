@@ -22,13 +22,23 @@ test.describe('Login', () => {
     await expect(page).toHaveURL(/\/auth\/login/);
   });
 
-  test('opens Forgot Password and returns to login', async ({ page }) => {
-    await loginPage.forgotPasswordButton.click();
-    await expect(page.getByRole('heading', { name: 'Forgot Password?' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Send Recovery Email' })).toBeVisible();
+  test('opens Forgot Password and returns to login', async () => {
+    await loginPage.openForgotPassword();
+    await expect(loginPage.sendRecoveryEmailButton).toBeVisible();
 
-    await page.getByRole('button', { name: /back to login/i }).click();
+    await loginPage.backToLoginButton.click();
     await expect(loginPage.forgotPasswordButton).toBeVisible();
+  });
+
+  test('Forgot Password requires a valid email', async ({ page }) => {
+    await loginPage.openForgotPassword();
+
+    // Submit with an empty field: the form must reject it and stay on the view.
+    // We deliberately never submit a real address — that would send a live
+    // recovery email to the account.
+    await loginPage.sendRecoveryEmailButton.click();
+    await expect(page.getByText(/email is required/i)).toBeVisible();
+    await expect(loginPage.forgotPasswordHeading).toBeVisible();
   });
 
   test('opens Sign Up and returns to login', async ({ page }) => {

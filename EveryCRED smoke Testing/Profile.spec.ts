@@ -16,7 +16,11 @@ test.describe('Profile', () => {
   });
 
   test('renders the profile form with populated name and email', async () => {
-    await expect(profilePage.fullNameInput).toBeVisible();
+    // On load the card is read-only and shows the name/email as text, not inputs.
+    // Enter edit mode (which first waits for the late profile-data fetch) to
+    // reveal the populated Full Name and Email fields.
+    await profilePage.enterEditMode();
+    await expect(profilePage.fullNameInput).toBeVisible({ timeout: PAGE_READY_TIMEOUT });
     await expect(profilePage.emailInput).toBeVisible();
     await expect(profilePage.fullNameInput).not.toHaveValue('');
     await expect(profilePage.emailInput).not.toHaveValue('');

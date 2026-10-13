@@ -12,6 +12,10 @@ export class LoginPage extends BasePage {
   readonly recoveryEmailInput: Locator;
   readonly sendRecoveryEmailButton: Locator;
   readonly backToLoginButton: Locator;
+  // Shown after a successful sign-in when the account already has the maximum of
+  // 5 active sessions (automated runs accumulate them). Blocks the redirect until
+  // a session is terminated.
+  readonly sessionLimitDialog: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -31,6 +35,7 @@ export class LoginPage extends BasePage {
     // The Forgot Password view's own email field (same unassociated-label caveat
     // as login, so target the email input within this view by type).
     this.recoveryEmailInput = page.locator('input[type="email"]');
+    this.sessionLimitDialog = page.getByRole('dialog', { name: 'Session Limit Reached' });
   }
 
   async goto(): Promise<void> {
@@ -47,5 +52,23 @@ export class LoginPage extends BasePage {
   async openForgotPassword(): Promise<void> {
     await this.forgotPasswordButton.click();
     await this.forgotPasswordHeading.waitFor({ state: 'visible' });
+  }
+
+  /**
+   * If sign-in surfaces the "Session Limit Reached" dialog (the account already
+   * has 5 active sessions — automated runs pile these up), free a slot so the
+   * login can proceed. Terminates the OLDEST listed session (bottom of the list)
+   * to avoid killing this run's most recent session. No-op if the dialog never
+   * appears. `timeout` bounds how long we wait for it after submitting.
+   */
+  async resolveSessionLimitIfPresent(timeout = 8_000): Promise<void> {
+    try {
+      await this.sessionLimitDialog.waitFor({ state: 'visible', timeout });
+    } catch {
+      return; // No session-limit dialog — nothing to resolve.
+    }
+    const terminateButtons = this.sessionLimitDialog.getByRole('button', { name: 'Terminate' });
+    await terminateButtons.last().click();
+    await this.sessionLimitDialog.waitFor({ state: 'hidden' });
   }
 }

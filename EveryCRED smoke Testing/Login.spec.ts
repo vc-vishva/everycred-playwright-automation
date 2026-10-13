@@ -59,6 +59,9 @@ test.describe('Login', () => {
 
     await test.step('log in', async () => {
       await loginPage.login(email!, password!);
+      // This account is also signed in by the worker fixture, so a concurrent
+      // login can hit the 5-session cap; clear a slot if the dialog appears.
+      await loginPage.resolveSessionLimitIfPresent();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: LOGIN_REDIRECT_TIMEOUT });
       await expect(dashboard.heading).toBeVisible();
     });
